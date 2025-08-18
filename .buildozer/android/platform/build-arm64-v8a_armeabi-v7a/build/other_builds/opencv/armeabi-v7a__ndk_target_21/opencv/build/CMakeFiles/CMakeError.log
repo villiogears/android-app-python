@@ -1,0 +1,68 @@
+Compilation failed:
+    source file: '/workspaces/android-app-python/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/other_builds/opencv/armeabi-v7a__ndk_target_21/opencv/cmake/checks/cpu_fp16.cpp'
+    check option: ''
+===== BUILD LOG =====
+Change Dir: '/workspaces/android-app-python/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/other_builds/opencv/armeabi-v7a__ndk_target_21/opencv/build/CMakeFiles/CMakeTmp'
+
+Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_f9a26/fast
+make -j2  -f CMakeFiles/cmTC_f9a26.dir/build.make CMakeFiles/cmTC_f9a26.dir/build
+make[1]: Entering directory '/workspaces/android-app-python/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/other_builds/opencv/armeabi-v7a__ndk_target_21/opencv/build/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_f9a26.dir/cpu_fp16.cpp.o
+/home/codespace/.buildozer/android/platform/android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++ --target=armv7-none-linux-androideabi21 --sysroot=/home/codespace/.buildozer/android/platform/android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/sysroot   -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -march=armv7-a -mthumb -Wformat -Werror=format-security    -O3 -DNDEBUG  -std=c++11 -fPIE -MD -MT CMakeFiles/cmTC_f9a26.dir/cpu_fp16.cpp.o -MF CMakeFiles/cmTC_f9a26.dir/cpu_fp16.cpp.o.d -o CMakeFiles/cmTC_f9a26.dir/cpu_fp16.cpp.o -c /workspaces/android-app-python/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/other_builds/opencv/armeabi-v7a__ndk_target_21/opencv/cmake/checks/cpu_fp16.cpp
+/workspaces/android-app-python/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/other_builds/opencv/armeabi-v7a__ndk_target_21/opencv/cmake/checks/cpu_fp16.cpp:21:25: error: use of undeclared identifier 'vcvt_f16_f32'
+    float16x4_t v_dst = vcvt_f16_f32(v_src);
+                        ^
+1 error generated.
+make[1]: *** [CMakeFiles/cmTC_f9a26.dir/build.make:79: CMakeFiles/cmTC_f9a26.dir/cpu_fp16.cpp.o] Error 1
+make[1]: Leaving directory '/workspaces/android-app-python/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/other_builds/opencv/armeabi-v7a__ndk_target_21/opencv/build/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:127: cmTC_f9a26/fast] Error 2
+
+
+===== END =====
+
+Compilation failed:
+    source file: '/workspaces/android-app-python/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/other_builds/opencv/armeabi-v7a__ndk_target_21/opencv/cmake/checks/cpu_fp16.cpp'
+    check option: ' -mfpu=neon-fp16 -mfp16-format=ieee'
+===== BUILD LOG =====
+Change Dir: '/workspaces/android-app-python/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/other_builds/opencv/armeabi-v7a__ndk_target_21/opencv/build/CMakeFiles/CMakeTmp'
+
+Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_22819/fast
+make -j2  -f CMakeFiles/cmTC_22819.dir/build.make CMakeFiles/cmTC_22819.dir/build
+make[1]: Entering directory '/workspaces/android-app-python/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/other_builds/opencv/armeabi-v7a__ndk_target_21/opencv/build/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_22819.dir/cpu_fp16.cpp.o
+/home/codespace/.buildozer/android/platform/android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++ --target=armv7-none-linux-androideabi21 --sysroot=/home/codespace/.buildozer/android/platform/android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/sysroot   -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -march=armv7-a -mthumb -Wformat -Werror=format-security    -O3 -DNDEBUG  -std=c++11 -fPIE    -mfpu=neon-fp16 -mfp16-format=ieee -MD -MT CMakeFiles/cmTC_22819.dir/cpu_fp16.cpp.o -MF CMakeFiles/cmTC_22819.dir/cpu_fp16.cpp.o.d -o CMakeFiles/cmTC_22819.dir/cpu_fp16.cpp.o -c /workspaces/android-app-python/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/other_builds/opencv/armeabi-v7a__ndk_target_21/opencv/cmake/checks/cpu_fp16.cpp
+clang++: error: unknown argument: '-mfp16-format=ieee'
+make[1]: *** [CMakeFiles/cmTC_22819.dir/build.make:79: CMakeFiles/cmTC_22819.dir/cpu_fp16.cpp.o] Error 1
+make[1]: Leaving directory '/workspaces/android-app-python/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/other_builds/opencv/armeabi-v7a__ndk_target_21/opencv/build/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:127: cmTC_22819/fast] Error 2
+
+
+===== END =====
+
+Build output check failed:
+    Regex: 'unknown .*option'
+    Output line: 'warning: unknown warning option '-Wno-maybe-uninitialized', did you mean '-Wno-uninitialized'? [-Wunknown-warning-option]'
+Compilation failed:
+    source file: '/workspaces/android-app-python/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/other_builds/opencv/armeabi-v7a__ndk_target_21/opencv/build/CMakeFiles/CMakeTmp/src.c'
+    check option: ' -Wno-maybe-uninitialized'
+===== BUILD LOG =====
+Change Dir: '/workspaces/android-app-python/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/other_builds/opencv/armeabi-v7a__ndk_target_21/opencv/build/CMakeFiles/CMakeTmp'
+
+Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_25ca6/fast
+make -j2  -f CMakeFiles/cmTC_25ca6.dir/build.make CMakeFiles/cmTC_25ca6.dir/build
+make[1]: Entering directory '/workspaces/android-app-python/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/other_builds/opencv/armeabi-v7a__ndk_target_21/opencv/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_25ca6.dir/src.c.o
+/home/codespace/.buildozer/android/platform/android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/clang --target=armv7-none-linux-androideabi21 --sysroot=/home/codespace/.buildozer/android/platform/android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/sysroot   -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -march=armv7-a -mthumb -Wformat -Werror=format-security    -fsigned-char -W -Wall -Werror=return-type -Werror=non-virtual-dtor -Werror=address -Werror=sequence-point -Wformat -Werror=format-security -Wstrict-prototypes -Winit-self -Wpointer-arith -Wsign-promo -Wuninitialized -Winconsistent-missing-override -Wno-delete-non-virtual-dtor -Wno-unnamed-type-template-args -Wno-comment -Wno-deprecated-enum-enum-conversion -Wno-deprecated-anon-enum-enum-conversion -fdiagnostics-show-option -Qunused-arguments -ffunction-sections -fdata-sections  -fvisibility=hidden -fvisibility-inlines-hidden -Wno-unused-but-set-variable -Wno-missing-prototypes -Wno-missing-declarations -Wno-undef -Wno-unused -Wno-sign-compare -Wno-cast-align -Wno-shadow  -O3 -DNDEBUG   -DNDEBUG -fPIE    -Wno-maybe-uninitialized -MD -MT CMakeFiles/cmTC_25ca6.dir/src.c.o -MF CMakeFiles/cmTC_25ca6.dir/src.c.o.d -o CMakeFiles/cmTC_25ca6.dir/src.c.o -c /workspaces/android-app-python/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/other_builds/opencv/armeabi-v7a__ndk_target_21/opencv/build/CMakeFiles/CMakeTmp/src.c
+warning: unknown warning option '-Wno-maybe-uninitialized'; did you mean '-Wno-uninitialized'? [-Wunknown-warning-option]
+/workspaces/android-app-python/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/other_builds/opencv/armeabi-v7a__ndk_target_21/opencv/build/CMakeFiles/CMakeTmp/src.c:1:8: warning: unknown pragma ignored [-Wunknown-pragmas]
+#pragma
+       ^
+2 warnings generated.
+Linking C executable cmTC_25ca6
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_25ca6.dir/link.txt --verbose=1
+/home/codespace/.buildozer/android/platform/android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/clang --target=armv7-none-linux-androideabi21 --sysroot=/home/codespace/.buildozer/android/platform/android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/sysroot -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -march=armv7-a -mthumb -Wformat -Werror=format-security    -fsigned-char -W -Wall -Werror=return-type -Werror=non-virtual-dtor -Werror=address -Werror=sequence-point -Wformat -Werror=format-security -Wstrict-prototypes -Winit-self -Wpointer-arith -Wsign-promo -Wuninitialized -Winconsistent-missing-override -Wno-delete-non-virtual-dtor -Wno-unnamed-type-template-args -Wno-comment -Wno-deprecated-enum-enum-conversion -Wno-deprecated-anon-enum-enum-conversion -fdiagnostics-show-option -Qunused-arguments -ffunction-sections -fdata-sections  -fvisibility=hidden -fvisibility-inlines-hidden -Wno-unused-but-set-variable -Wno-missing-prototypes -Wno-missing-declarations -Wno-undef -Wno-unused -Wno-sign-compare -Wno-cast-align -Wno-shadow  -O3 -DNDEBUG   -DNDEBUG -static-libstdc++ -Wl,--build-id=sha1 -Wl,--no-rosegment -Wl,--fatal-warnings -Wl,--gc-sections -Wl,--no-undefined -Qunused-arguments -Wl,--gc-sections   -Wl,--gc-sections -Wl,--as-needed  CMakeFiles/cmTC_25ca6.dir/src.c.o -o cmTC_25ca6  -latomic -lm 
+make[1]: Leaving directory '/workspaces/android-app-python/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/other_builds/opencv/armeabi-v7a__ndk_target_21/opencv/build/CMakeFiles/CMakeTmp'
+
+
+===== END =====
+
