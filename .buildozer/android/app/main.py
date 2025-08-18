@@ -77,7 +77,12 @@ class MainApp(App):
 		self.mirror = False
 
 		# 背景をやや透過させ操作部が見えるように（見た目のため）
-		ctrl_box.canvas.before.clear()
+		# canvas.before が無い・操作できない端末もあるので安全に呼ぶ
+		try:
+			ctrl_box.canvas.before.clear()
+		except Exception:
+			# 無視して先に進める（ログが必要ならここで print）
+			pass
 		root.add_widget(ctrl_box)
 
 		self.last_processed = None
@@ -118,42 +123,80 @@ class MainApp(App):
 				np = None
 				has_np = False
 
+		# 戻り値で現在の状態を簡単に使えるようにする
+		return has_cv2, has_np
+
 	def texture_to_bgr(self, texture):
-		# Kivy texture (rgba) -> OpenCV BGR ndarray
-		if not texture:
+		# Kivy texture -> OpenCV BGR ndarray（安全呼び出し）
+		try:
+			if not texture:
+				return None
+			has_cv2_local, has_np_local = self.ensure_cv2_np()
+			if not has_np_local:
+				# numpy 無しでは処理不可
+				return None
+			w, h = texture.size
+			# colorfmt が存在すれば確認（'rgba' や 'rgb' 等）
+			fmt = getattr(texture, 'colorfmt', 'rgba').lower()
+			# texture.pixels は端末やタイミングによって取得できないことがある
+			pixels = None
+			try:
+				pixels = texture.pixels
+			except Exception:
+				# 一部環境では .pixels が使えない可能性がある
+				pixels = None
+			if not pixels:
+				return None
+			arr = np.frombuffer(pixels, dtype=np.uint8)
+			expected_channels = 4 if 'rgba' in fmt else 3
+			expected = w * h * expected_channels
+			# バッファが期待より小さい場合は無視
+			if arr.size < expected:
+				return None
+			# 余分なデータがある場合は切り詰め
+			if arr.size > expected:
+				arr = arr[:expected]
+			arr = arr.reshape((h, w, expected_channels))
+			if expected_channels == 4:
+				rgb = arr[:, :, :3]
+			else:
+				rgb = arr
+			# RGB -> BGR
+			bgr = rgb[..., ::-1].copy()
+			return bgr
+		except Exception as e:
+			print('texture_to_bgr failed:', e)
 			return None
-		# ensure numpy available
-		self.ensure_cv2_np()
-		w, h = texture.size
-		pixels = texture.pixels  # bytes in 'rgba'
-		if not has_np:
-			return None
-		arr = np.frombuffer(pixels, dtype=np.uint8)
-		if arr.size != w * h * 4:
-			# 不正な場合は安定化
-			return None
-		arr = arr.reshape((h, w, 4))
-		rgba = arr[:, :, :3]  # R,G,B
-		# Kivy は通常上向きなので不要だが色順は RGB -> convert to BGR
-		bgr = rgba[..., ::-1].copy()
-		return bgr
 
 	def bgr_to_texture(self, img_bgr):
-		# OpenCV BGR -> Kivy Texture (RGB)
-		if img_bgr is None:
+		# OpenCV BGR -> Kivy Texture (RGB), 安全に処理
+		try:
+			if img_bgr is None:
+				return None
+			has_cv2_local, _ = self.ensure_cv2_np()
+			if not has_cv2_local:
+				return None
+			# 色変換（cv2 が失敗する可能性を try/except）
+			img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+			h, w = img_rgb.shape[:2]
+			if h == 0 or w == 0:
+				return None
+			buf = img_rgb.tobytes()
+			tex = Texture.create(size=(w, h), colorfmt='rgb')
+			try:
+				tex.blit_buffer(buf, colorfmt='rgb', bufferfmt='ubyte')
+			except Exception:
+				# blit が失敗したら None を返す
+				return None
+			# カメラ画像は上下が逆のことがあるので反転（safe）
+			try:
+				tex.flip_vertical()
+			except Exception:
+				pass
+			return tex
+		except Exception as e:
+			print('bgr_to_texture failed:', e)
 			return None
-		# ensure cv2 available
-		self.ensure_cv2_np()
-		if not has_cv2:
-			return None
-		img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-		h, w = img_rgb.shape[:2]
-		buf = img_rgb.tobytes()
-		tex = Texture.create(size=(w, h), colorfmt='rgb')
-		tex.blit_buffer(buf, colorfmt='rgb', bufferfmt='ubyte')
-		# カメラ画像は上下が逆のことがあるので反転
-		tex.flip_vertical()
-		return tex
 
 	def apply_tone(self, img_bgr, brightness=0, contrast=1.0, warmth=0.0):
 		# brightness: -100..100 -> beta
@@ -183,17 +226,23 @@ class MainApp(App):
 		return adjusted
 
 	def apply_orientation(self, img):
-		# 回転とミラーを適用
+		# 回転とミラーを適用（cv2 無しで呼ばれても安全に抜ける）
 		if img is None:
 			return img
-		if self.rotate_angle == 90:
-			img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
-		elif self.rotate_angle == 180:
-			img = cv2.rotate(img, cv2.ROTATE_180)
-		elif self.rotate_angle == 270:
-			img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
-		if self.mirror:
-			img = cv2.flip(img, 1)  # 水平方向に反転
+		has_cv2_local, _ = self.ensure_cv2_np()
+		if not has_cv2_local:
+			return img
+		try:
+			if self.rotate_angle == 90:
+				img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+			elif self.rotate_angle == 180:
+				img = cv2.rotate(img, cv2.ROTATE_180)
+			elif self.rotate_angle == 270:
+				img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+			if self.mirror:
+				img = cv2.flip(img, 1)  # 水平方向に反転
+		except Exception as e:
+			print('apply_orientation failed:', e)
 		return img
 
 	def toggle_rotate(self, instance):
@@ -210,7 +259,7 @@ class MainApp(App):
 		try:
 			tex = None
 			try:
-				tex = self.camera.texture
+				tex = getattr(self.camera, 'texture', None)
 			except Exception:
 				tex = None
 			if not tex:
@@ -242,8 +291,8 @@ class MainApp(App):
 			if tex_out:
 				try:
 					self.preview.texture = tex_out
-				except Exception:
-					pass
+				except Exception as e:
+					print('preview.texture assignment failed:', e)
 			# 保存も行う（ユーザーは Save で再保存可能）
 			self._save_to_storage(processed_oriented)
 		except Exception as e:
@@ -262,8 +311,8 @@ class MainApp(App):
 		if img_bgr is None:
 			return
 		# ensure cv2 availability for writing
-		self.ensure_cv2_np()
-		if not has_cv2:
+		has_cv2_local, _ = self.ensure_cv2_np()
+		if not has_cv2_local:
 			print('cv2 not available; cannot write image')
 			return
 		dirpath = '/storage/emulated/0/Pictures'
@@ -275,8 +324,11 @@ class MainApp(App):
 		filename = 'kivy_capture_{}.jpg'.format(int(time.time()))
 		path = os.path.join(dirpath, filename)
 		try:
-			cv2.imwrite(path, img_bgr)
-			print('Saved to', path)
+			try:
+				cv2.imwrite(path, img_bgr)
+				print('Saved to', path)
+			except Exception as e:
+				print('cv2.imwrite failed:', e)
 		except Exception as e:
 			print('Failed to save:', e)
 
