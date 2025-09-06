@@ -1,2 +1,0 @@
-/home/codespace/.buildozer/android/platform/android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar qc ../lib/armeabi-v7a/libcpufeatures.a "CMakeFiles/libcpufeatures.dir/cpu-features.c.o"
-/home/codespace/.buildozer/android/platform/android-ndk-r25b/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib ../lib/armeabi-v7a/libcpufeatures.a
