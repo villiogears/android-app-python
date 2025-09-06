@@ -1,0 +1,1 @@
+/workspaces/android-app-python/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/build/python-installs/kivyexample/armeabi-v7a/cv2.cpython-311-x86_64-linux-gnu.so
