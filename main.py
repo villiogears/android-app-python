@@ -146,6 +146,14 @@ class CameraApp(App):
         
         return layout
     
+    def update_rect(self, instance, value):
+        # 半透明背景の更新
+        instance.canvas.before.clear()
+        from kivy.graphics import Color, Rectangle
+        with instance.canvas.before:
+            Color(0, 0, 0, 0.3)
+            Rectangle(pos=instance.pos, size=instance.size)
+    
     def on_texture_update(self, instance, texture):
         """カメラのtextureが更新されたときにフレームを回転させる"""
         if texture and self.camera_rotation != 0:
