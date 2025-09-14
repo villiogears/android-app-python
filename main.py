@@ -21,26 +21,52 @@ import os
 
 class CameraApp(App):
     def build(self):
-        # Main layout
-        layout = BoxLayout(orientation='vertical')
+        # Main layout - カメラを最大化するためにFloatLayoutを使用
+        from kivy.uix.floatlayout import FloatLayout
+        layout = FloatLayout()
         
-        # Camera widget - カメラの初期化を遅らせる
-        self.camera = Camera(play=False, resolution=(640, 480))
+        # Camera widget - カメラの初期化を遅らせる、サイズを最大化、向きを修正
+        # Androidではより高い解像度を使用
+        if platform == 'android':
+            camera_resolution = (1920, 1080)  # FHD解像度
+        else:
+            camera_resolution = (1280, 720)   # HD解像度
+            
+        self.camera = Camera(
+            play=False, 
+            resolution=camera_resolution,
+            size_hint=(1, 1),
+            pos_hint={'x': 0, 'y': 0}
+        )
+        # Androidでのカメラ向き修正
+        if platform == 'android':
+            self.camera.orientation = 'landscape'
         layout.add_widget(self.camera)
         
-        # Control buttons
-        button_layout = BoxLayout(size_hint_y=0.15, orientation='vertical')
+        # Control buttons - カメラの上にオーバーレイ、半透明にしてカメラビューを邪魔しない
+        button_layout = BoxLayout(
+            orientation='vertical',
+            size_hint=(1, 0.15),
+            pos_hint={'x': 0, 'y': 0.85}
+        )
+        
+        # 背景を半透明にする
+        from kivy.graphics import Color, Rectangle
+        with button_layout.canvas.before:
+            Color(0, 0, 0, 0.3)  # 黒、30%透明
+            Rectangle(pos=button_layout.pos, size=button_layout.size)
+        button_layout.bind(pos=self.update_rect, size=self.update_rect)
         
         # Top row buttons
         top_buttons = BoxLayout(size_hint_y=0.5)
         
         # Capture button
-        capture_btn = Button(text='📷 Capture')
+        capture_btn = Button(text='📷 Capture', size_hint_x=0.5)
         capture_btn.bind(on_press=self.capture)
         top_buttons.add_widget(capture_btn)
         
         # Flash toggle button
-        self.flash_btn = Button(text='⚡ Flash: Off')
+        self.flash_btn = Button(text='⚡ Flash: Off', size_hint_x=0.5)
         self.flash_btn.bind(on_press=self.toggle_flash)
         top_buttons.add_widget(self.flash_btn)
         
@@ -49,25 +75,13 @@ class CameraApp(App):
         # Bottom row buttons
         bottom_buttons = BoxLayout(size_hint_y=0.5)
         
-        # Zoom controls
-        zoom_layout = BoxLayout(size_hint_x=0.4)
-        zoom_out_btn = Button(text='🔍-', size_hint_x=0.5)
-        zoom_out_btn.bind(on_press=self.zoom_out)
-        zoom_layout.add_widget(zoom_out_btn)
-        
-        zoom_in_btn = Button(text='🔍+', size_hint_x=0.5)
-        zoom_in_btn.bind(on_press=self.zoom_in)
-        zoom_layout.add_widget(zoom_in_btn)
-        
-        bottom_buttons.add_widget(zoom_layout)
-        
         # Resolution toggle
-        self.res_btn = Button(text='HD', size_hint_x=0.3)
+        self.res_btn = Button(text='HD', size_hint_x=0.5)
         self.res_btn.bind(on_press=self.toggle_resolution)
         bottom_buttons.add_widget(self.res_btn)
         
         # Settings button
-        settings_btn = Button(text='⚙️', size_hint_x=0.3)
+        settings_btn = Button(text='⚙️', size_hint_x=0.5)
         settings_btn.bind(on_press=self.show_settings)
         bottom_buttons.add_widget(settings_btn)
         
@@ -75,10 +89,35 @@ class CameraApp(App):
         
         layout.add_widget(button_layout)
         
+        # ズームコントロールを画面右側に配置
+        zoom_layout = BoxLayout(
+            orientation='vertical',
+            size_hint=(0.08, 0.25),
+            pos_hint={'x': 0.92, 'y': 0.35}
+        )
+        
+        zoom_in_btn = Button(text='🔍+', size_hint_y=0.5, background_color=(0, 0, 0, 0.5), font_size=20)
+        zoom_in_btn.bind(on_press=self.zoom_in)
+        zoom_layout.add_widget(zoom_in_btn)
+        
+        zoom_out_btn = Button(text='🔍-', size_hint_y=0.5, background_color=(0, 0, 0, 0.5), font_size=20)
+        zoom_out_btn.bind(on_press=self.zoom_out)
+        zoom_layout.add_widget(zoom_out_btn)
+        
+        layout.add_widget(zoom_layout)
+        
         # カメラの初期化を遅らせる
         Clock.schedule_once(self.init_camera, 3)
         
         return layout
+    
+    def update_rect(self, instance, value):
+        # 半透明背景の更新
+        instance.canvas.before.clear()
+        from kivy.graphics import Color, Rectangle
+        with instance.canvas.before:
+            Color(0, 0, 0, 0.3)
+            Rectangle(pos=instance.pos, size=instance.size)
     
     def init_camera(self, dt):
         try:
@@ -104,6 +143,17 @@ class CameraApp(App):
     def start_camera_safe(self, dt):
         try:
             self.camera.play = True
+            # Androidでのカメラ向き修正 - canvasを使って90度回転
+            if platform == 'android':
+                def rotate_camera(*args):
+                    self.camera.canvas.before.clear()
+                    from kivy.graphics import PushMatrix, Rotate, PopMatrix
+                    with self.camera.canvas.before:
+                        PushMatrix()
+                        Rotate(angle=90, origin=self.camera.center)
+                        PopMatrix()
+                # カメラが準備できるまで少し待ってから回転を適用
+                Clock.schedule_once(lambda dt: rotate_camera(), 0.5)
             print("Camera started successfully")
         except Exception as e:
             print(f"Failed to start camera: {e}")
