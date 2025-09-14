@@ -45,9 +45,16 @@ class CameraApp(App):
             size_hint=(1, 1),
             pos_hint={'x': 0, 'y': 0}
         )
-        # Androidでのカメラ向き修正
+        # Androidでのカメラ向き修正 - 初期orientationを設定
         if platform == 'android':
-            self.camera.orientation = 'landscape'
+            if self.camera_rotation == 0:
+                self.camera.orientation = 'portrait'
+            elif self.camera_rotation == 90:
+                self.camera.orientation = 'landscape'
+            elif self.camera_rotation == 180:
+                self.camera.orientation = 'portrait'
+            else:  # 270
+                self.camera.orientation = 'landscape'
         layout.add_widget(self.camera)
         
         # Control buttons - カメラの上にオーバーレイ、半透明にしてカメラビューを邪魔しない
@@ -175,10 +182,41 @@ class CameraApp(App):
     def apply_camera_rotation(self):
         """カメラの回転を適用する"""
         if platform == 'android':
-            # Cameraウィジェットのrotationプロパティを使用
-            self.camera.rotation = self.camera_rotation
-            print(f"Applied camera rotation: {self.camera_rotation}°")
-    
+            try:
+                # カメラを一時的に停止
+                was_playing = self.camera.play
+                if was_playing:
+                    self.camera.play = False
+
+                # orientationに基づいてカメラの向きを設定
+                if self.camera_rotation == 0:
+                    self.camera.orientation = 'portrait'
+                elif self.camera_rotation == 90:
+                    self.camera.orientation = 'landscape'
+                elif self.camera_rotation == 180:
+                    self.camera.orientation = 'portrait'
+                else:  # 270
+                    self.camera.orientation = 'landscape'
+
+                # Cameraウィジェットのrotationも設定
+                self.camera.rotation = self.camera_rotation
+
+                # カメラを再開
+                if was_playing:
+                    Clock.schedule_once(lambda dt: self.restart_camera(), 0.1)
+
+                print(f"Applied camera rotation: {self.camera_rotation}°")
+            except Exception as e:
+                print(f"Camera rotation error: {e}")
+
+    def restart_camera(self):
+        """カメラを再開する"""
+        try:
+            self.camera.play = True
+            print("Camera restarted after rotation")
+        except Exception as e:
+            print(f"Failed to restart camera: {e}")
+
     def show_camera_error(self):
         # カメラエラーのメッセージを表示
         error_label = Label(
@@ -233,11 +271,11 @@ class CameraApp(App):
         # 回転角度を90度ずつ変更（0° → 90° → 180° → 270° → 0°）
         self.camera_rotation = (self.camera_rotation + 90) % 360
         self.rotation_btn.text = f'🔄 {self.camera_rotation}°'
-        
+
         # 回転を即座に適用
         if platform == 'android' and self.camera.play:
             self.apply_camera_rotation()
-        
+
         print(f"Camera rotation changed to {self.camera_rotation}°")
     
     def zoom_in(self, instance):
