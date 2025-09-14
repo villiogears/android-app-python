@@ -1,7 +1,25 @@
 from kivy.app import App
 from kivy.clock import Clock
-from kivy.uix.stacklayout import StackLayout
-from kivy.uix.image import Image
+from kivy.uix.stacklayout im    def init_camera(self, dt):
+        try:
+            # カメラ権限を確認してから初期化
+            if platform == 'android':
+                from plyer import permission
+                if permission.check_permission('android.permission.CAMERA'):
+                    Clock.schedule_once(self.start_camera_safe, 1)
+                else:
+                    def on_permissions(result):
+                        if result:
+                            Clock.schedule_once(self.start_camera_safe, 1)
+                        else:
+                            print("Camera permission denied")
+                            self.show_camera_error()
+                    permission.request_permission('android.permission.CAMERA', on_permissions)
+            else:
+                Clock.schedule_once(self.start_camera_safe, 1)
+        except Exception as e:
+            print(f"Camera initialization error: {e}")
+            Clock.schedule_once(self.start_camera_safe, 1)m kivy.uix.image import Image
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.camera import Camera
@@ -76,7 +94,7 @@ class CameraApp(App):
         button_layout.add_widget(bottom_buttons)
         
         # カメラの初期化を遅らせる
-        Clock.schedule_once(self.init_camera, 2)
+        Clock.schedule_once(self.init_camera, 3)
         
         return layout
     
