@@ -239,6 +239,14 @@ class CameraApp(App):
             print(f"Android camera orientation setup error: {e}")
             self.apply_camera_rotation()
 
+    def apply_camera_rotation(self):
+        """カメラの表示回転を適用（標準Kivy Camera用）"""
+        if hasattr(self.camera, 'rotation'):
+            self.camera.rotation = self.camera_rotation
+            print(f"Applied rotation: {self.camera_rotation}°")
+        else:
+            print("Camera rotation not supported")
+
     def apply_android_rotation(self):
         """Android特有のカメラ回転処理"""
         try:
