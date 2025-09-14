@@ -17,6 +17,8 @@ from functools import partial
 from datetime import datetime
 from os.path import exists
 import os
+import cv2
+import numpy as np
 
 
 class CameraApp(App):
@@ -27,6 +29,7 @@ class CameraApp(App):
             self.camera_rotation = 90
         else:
             self.camera_rotation = 0  # カメラの回転角度を追跡
+        self.rotated_texture = None  # 回転したテクスチャを保持
     def build(self):
         # Main layout - カメラを最大化するためにFloatLayoutを使用
         from kivy.uix.floatlayout import FloatLayout
@@ -55,6 +58,10 @@ class CameraApp(App):
                 self.camera.orientation = 'portrait'
             else:  # 270
                 self.camera.orientation = 'landscape'
+        
+        # カメラのtexture更新イベントを監視して回転処理を追加
+        self.camera.bind(on_texture=self.on_texture_update)
+        
         layout.add_widget(self.camera)
         
         # Control buttons - カメラの上にオーバーレイ、半透明にしてカメラビューを邪魔しない
@@ -139,13 +146,63 @@ class CameraApp(App):
         
         return layout
     
-    def update_rect(self, instance, value):
-        # 半透明背景の更新
-        instance.canvas.before.clear()
-        from kivy.graphics import Color, Rectangle
-        with instance.canvas.before:
-            Color(0, 0, 0, 0.3)
-            Rectangle(pos=instance.pos, size=instance.size)
+    def on_texture_update(self, instance, texture):
+        """カメラのtextureが更新されたときにフレームを回転させる"""
+        if texture and self.camera_rotation != 0:
+            try:
+                # textureからフレームを取得
+                frame = self.texture_to_frame(texture)
+                
+                # フレームを回転
+                rotated_frame = self.rotate_frame(frame, self.camera_rotation)
+                
+                # 回転したフレームをtextureに設定
+                self.frame_to_texture(rotated_frame, texture)
+                
+            except Exception as e:
+                print(f"Frame rotation error: {e}")
+    
+    def texture_to_frame(self, texture):
+        """Kivy textureをOpenCVフレームに変換"""
+        # textureのサイズを取得
+        width, height = texture.size
+        
+        # textureのピクセルデータを取得
+        pixels = texture.pixels
+        
+        # RGBAからBGRに変換してOpenCV形式に
+        frame = np.frombuffer(pixels, dtype=np.uint8).reshape(height, width, 4)
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
+        
+        return frame
+    
+    def rotate_frame(self, frame, angle):
+        """フレームを指定角度で回転"""
+        if angle == 0:
+            return frame
+        elif angle == 90:
+            return cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+        elif angle == 180:
+            return cv2.rotate(frame, cv2.ROTATE_180)
+        elif angle == 270:
+            return cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        else:
+            # 任意の角度での回転
+            height, width = frame.shape[:2]
+            center = (width // 2, height // 2)
+            rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+            return cv2.warpAffine(frame, rotation_matrix, (width, height))
+    
+    def frame_to_texture(self, frame, texture):
+        """OpenCVフレームをKivy textureに変換"""
+        # BGRからRGBAに変換
+        frame_rgba = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
+        
+        # フレームを1次元配列に変換
+        pixels = frame_rgba.tobytes()
+        
+        # textureにピクセルデータを設定
+        texture.blit_buffer(pixels, colorfmt='rgba', bufferfmt='ubyte')
     
     def init_camera(self, dt):
         try:
@@ -183,11 +240,6 @@ class CameraApp(App):
         """カメラの回転を適用する"""
         if platform == 'android':
             try:
-                # カメラを一時的に停止
-                was_playing = self.camera.play
-                if was_playing:
-                    self.camera.play = False
-
                 # orientationに基づいてカメラの向きを設定
                 if self.camera_rotation == 0:
                     self.camera.orientation = 'portrait'
@@ -201,21 +253,9 @@ class CameraApp(App):
                 # Cameraウィジェットのrotationも設定
                 self.camera.rotation = self.camera_rotation
 
-                # カメラを再開
-                if was_playing:
-                    Clock.schedule_once(lambda dt: self.restart_camera(), 0.1)
-
                 print(f"Applied camera rotation: {self.camera_rotation}°")
             except Exception as e:
                 print(f"Camera rotation error: {e}")
-
-    def restart_camera(self):
-        """カメラを再開する"""
-        try:
-            self.camera.play = True
-            print("Camera restarted after rotation")
-        except Exception as e:
-            print(f"Failed to restart camera: {e}")
 
     def show_camera_error(self):
         # カメラエラーのメッセージを表示
@@ -247,24 +287,50 @@ class CameraApp(App):
     def capture(self, instance):
         # Capture image
         if self.camera.texture:
-            # Save image
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f'photo_{timestamp}.png'
-            
-            # For Android, save to external storage
-            if platform == 'android':
-                # Use Android's external storage directory
-                filepath = f'/storage/emulated/0/DCIM/Camera/{filename}'
-            else:
-                # For desktop testing
-                filepath = filename
-            
-            # Ensure directory exists
-            os.makedirs(os.path.dirname(filepath), exist_ok=True)
-            
-            # Save texture as image
-            self.camera.export_to_png(filepath)
-            print(f'Image saved to: {filepath}')
+            try:
+                # textureからフレームを取得
+                frame = self.texture_to_frame(self.camera.texture)
+                
+                # 現在の回転角度を考慮してフレームを回転
+                if self.camera_rotation != 0:
+                    frame = self.rotate_frame(frame, -self.camera_rotation)  # 保存時は逆回転
+                
+                # 画像を保存
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                filename = f'photo_{timestamp}.png'
+                
+                # For Android, save to external storage
+                if platform == 'android':
+                    # Use Android's external storage directory
+                    filepath = f'/storage/emulated/0/DCIM/Camera/{filename}'
+                else:
+                    # For desktop testing
+                    filepath = filename
+                
+                # Ensure directory exists
+                os.makedirs(os.path.dirname(filepath), exist_ok=True)
+                
+                # Save frame as image
+                cv2.imwrite(filepath, frame)
+                print(f'Image saved to: {filepath}')
+                
+            except Exception as e:
+                print(f"Capture error: {e}")
+                # フォールバックとして元の方法を使用
+                try:
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    filename = f'photo_{timestamp}.png'
+                    
+                    if platform == 'android':
+                        filepath = f'/storage/emulated/0/DCIM/Camera/{filename}'
+                    else:
+                        filepath = filename
+                    
+                    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+                    self.camera.export_to_png(filepath)
+                    print(f'Image saved to: {filepath} (fallback)')
+                except Exception as e2:
+                    print(f"Capture fallback error: {e2}")
     
     def rotate_camera(self, instance):
         """カメラの向きを90度回転させる"""
@@ -273,11 +339,11 @@ class CameraApp(App):
         self.rotation_btn.text = f'🔄 {self.camera_rotation}°'
 
         # 回転を即座に適用
-        if platform == 'android' and self.camera.play:
+        if platform == 'android':
             self.apply_camera_rotation()
 
         print(f"Camera rotation changed to {self.camera_rotation}°")
-    
+
     def zoom_in(self, instance):
         if hasattr(self.camera, 'zoom'):
             current_zoom = getattr(self.camera, 'zoom', 1.0)
