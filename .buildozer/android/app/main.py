@@ -256,6 +256,19 @@ class CameraApp(App):
             current_zoom = getattr(self.camera, 'zoom', 1.0)
             self.camera.zoom = max(current_zoom - 0.1, 0.1)
     
+    def toggle_flash(self, instance):
+        # Toggle flash (Android only)
+        if platform == 'android':
+            try:
+                # Android flash control using jnius
+                CameraClass = autoclass('android.hardware.Camera')
+                Parameters = autoclass('android.hardware.Camera$Parameters')
+                
+                # This is a simplified example - actual implementation may vary
+                print('Flash toggle attempted')
+            except:
+                print('Flash control not available')
+    
     def toggle_resolution(self, instance):
         current_res = self.camera.resolution
         if current_res == (640, 480):
