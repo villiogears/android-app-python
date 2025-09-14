@@ -5,6 +5,7 @@ from kivy.uix.image import Image
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.camera import Camera
+from kivy.uix.label import Label
 from kivy.utils import platform
 try:
     if platform == 'android':
@@ -25,8 +26,8 @@ class CameraApp(App):
         # Main layout
         layout = BoxLayout(orientation='vertical')
         
-        # Camera widget
-        self.camera = Camera(play=True, resolution=(640, 480))
+        # Camera widget - カメラの初期化を遅らせる
+        self.camera = Camera(play=False, resolution=(640, 480))
         layout.add_widget(self.camera)
         
         # Control buttons
@@ -74,7 +75,67 @@ class CameraApp(App):
         
         button_layout.add_widget(bottom_buttons)
         
+        # カメラの初期化を遅らせる
+        Clock.schedule_once(self.init_camera, 2)
+        
         return layout
+    
+    def init_camera(self, dt):
+        try:
+            # カメラ権限を確認してから初期化
+            if platform == 'android':
+                from plyer import permission
+                if permission.check_permission('android.permission.CAMERA'):
+                    self.start_camera()
+                else:
+                    def on_permissions(result):
+                        if result:
+                            self.start_camera()
+                        else:
+                            print("Camera permission denied")
+                    permission.request_permission('android.permission.CAMERA', on_permissions)
+            else:
+                self.start_camera()
+        except Exception as e:
+            print(f"Camera initialization error: {e}")
+            # 権限チェックをスキップしてカメラを開始
+            self.start_camera()
+    
+    def start_camera(self):
+        try:
+            self.camera.play = True
+            print("Camera started successfully")
+        except Exception as e:
+            print(f"Failed to start camera: {e}")
+            # カメラが利用できない場合のフォールバック
+            self.show_camera_error()
+    
+    def show_camera_error(self):
+        # カメラエラーのメッセージを表示
+        error_label = Label(
+            text="カメラが利用できません\n権限を確認してください",
+            font_size=20,
+            halign='center',
+            valign='middle'
+        )
+        error_label.bind(size=error_label.setter('text_size'))
+        
+        # 再試行ボタン
+        retry_btn = Button(text="再試行", size_hint=(0.5, 0.2), pos_hint={'center_x': 0.5})
+        retry_btn.bind(on_press=self.retry_camera)
+        
+        # エラーレイアウト
+        error_layout = BoxLayout(orientation='vertical')
+        error_layout.add_widget(error_label)
+        error_layout.add_widget(retry_btn)
+        
+        # メインカメラを非表示にしてエラーメッセージを表示
+        self.camera.opacity = 0
+        self.layout.add_widget(error_layout)
+    
+    def retry_camera(self, instance):
+        # カメラを再試行
+        Clock.schedule_once(self.init_camera, 0.1)
     
     def capture(self, instance):
         # Capture image
