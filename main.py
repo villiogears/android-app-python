@@ -1,25 +1,5 @@
 from kivy.app import App
 from kivy.clock import Clock
-from kivy.uix.stacklayout im    def init_camera(self, dt):
-        try:
-            # カメラ権限を確認してから初期化
-            if platform == 'android':
-                from plyer import permission
-                if permission.check_permission('android.permission.CAMERA'):
-                    Clock.schedule_once(self.start_camera_safe, 1)
-                else:
-                    def on_permissions(result):
-                        if result:
-                            Clock.schedule_once(self.start_camera_safe, 1)
-                        else:
-                            print("Camera permission denied")
-                            self.show_camera_error()
-                    permission.request_permission('android.permission.CAMERA', on_permissions)
-            else:
-                Clock.schedule_once(self.start_camera_safe, 1)
-        except Exception as e:
-            print(f"Camera initialization error: {e}")
-            Clock.schedule_once(self.start_camera_safe, 1)m kivy.uix.image import Image
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.camera import Camera
@@ -93,6 +73,8 @@ class CameraApp(App):
         
         button_layout.add_widget(bottom_buttons)
         
+        layout.add_widget(button_layout)
+        
         # カメラの初期化を遅らせる
         Clock.schedule_once(self.init_camera, 3)
         
@@ -104,28 +86,27 @@ class CameraApp(App):
             if platform == 'android':
                 from plyer import permission
                 if permission.check_permission('android.permission.CAMERA'):
-                    self.start_camera()
+                    Clock.schedule_once(self.start_camera_safe, 1)
                 else:
                     def on_permissions(result):
                         if result:
-                            self.start_camera()
+                            Clock.schedule_once(self.start_camera_safe, 1)
                         else:
                             print("Camera permission denied")
+                            self.show_camera_error()
                     permission.request_permission('android.permission.CAMERA', on_permissions)
             else:
-                self.start_camera()
+                Clock.schedule_once(self.start_camera_safe, 1)
         except Exception as e:
             print(f"Camera initialization error: {e}")
-            # 権限チェックをスキップしてカメラを開始
-            self.start_camera()
+            Clock.schedule_once(self.start_camera_safe, 1)
     
-    def start_camera(self):
+    def start_camera_safe(self, dt):
         try:
             self.camera.play = True
             print("Camera started successfully")
         except Exception as e:
             print(f"Failed to start camera: {e}")
-            # カメラが利用できない場合のフォールバック
             self.show_camera_error()
     
     def show_camera_error(self):
@@ -149,7 +130,7 @@ class CameraApp(App):
         
         # メインカメラを非表示にしてエラーメッセージを表示
         self.camera.opacity = 0
-        self.layout.add_widget(error_layout)
+        self.root.add_widget(error_layout)
     
     def retry_camera(self, instance):
         # カメラを再試行
@@ -217,3 +198,5 @@ class CameraApp(App):
         print('Settings menu would open here')
 
 
+if __name__ == '__main__':
+    CameraApp().run()
