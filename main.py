@@ -216,8 +216,8 @@ class CameraApp(App):
         try:
             # カメラ権限を確認してから初期化
             if platform == 'android':
-                from plyer import permission
-                if permission.check_permission('android.permission.CAMERA'):
+                from plyer import permissions
+                if permissions.check_permission('android.permission.CAMERA'):
                     Clock.schedule_once(self.start_camera_safe, 1)
                 else:
                     def on_permissions(result):
@@ -226,7 +226,7 @@ class CameraApp(App):
                         else:
                             print("Camera permission denied")
                             self.show_camera_error()
-                    permission.request_permission('android.permission.CAMERA', on_permissions)
+                    permissions.request_permission('android.permission.CAMERA', on_permissions)
             else:
                 Clock.schedule_once(self.start_camera_safe, 1)
         except Exception as e:
