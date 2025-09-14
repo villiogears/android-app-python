@@ -357,8 +357,8 @@ class CameraApp(App):
         self.camera_rotation = (self.camera_rotation + 90) % 360
         self.rotation_btn.text = f'🔄 {self.camera_rotation}°'
 
-        # 回転を即座に適用
-        self.apply_camera_rotation()
+        # 少し遅延させて回転を適用（カメラの状態変更が完了するのを待つ）
+        Clock.schedule_once(lambda dt: self.apply_camera_rotation(), 0.1)
 
         print(f"Camera rotation changed to {self.camera_rotation}°")
 

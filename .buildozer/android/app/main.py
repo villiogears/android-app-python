@@ -156,12 +156,12 @@ class CameraApp(App):
     
     def on_texture_update(self, instance, texture):
         """カメラのtextureが更新されたときにフレームを回転させる"""
-        if texture and self.camera_rotation != 0:
+        if texture:
             try:
                 # textureからフレームを取得
                 frame = self.texture_to_frame(texture)
                 
-                # フレームを回転
+                # フレームを回転（常に現在の回転角度を適用）
                 rotated_frame = self.rotate_frame(frame, self.camera_rotation)
                 
                 # 回転したフレームをtextureに設定
@@ -246,24 +246,28 @@ class CameraApp(App):
     
     def apply_camera_rotation(self):
         """カメラの回転を適用する"""
-        if platform == 'android':
-            try:
-                # orientationに基づいてカメラの向きを設定
-                if self.camera_rotation == 0:
-                    self.camera.orientation = 'portrait'
-                elif self.camera_rotation == 90:
-                    self.camera.orientation = 'landscape'
-                elif self.camera_rotation == 180:
-                    self.camera.orientation = 'portrait'
-                else:  # 270
-                    self.camera.orientation = 'landscape'
+        try:
+            # orientationに基づいてカメラの向きを設定
+            if self.camera_rotation == 0:
+                self.camera.orientation = 'portrait'
+            elif self.camera_rotation == 90:
+                self.camera.orientation = 'landscape'
+            elif self.camera_rotation == 180:
+                self.camera.orientation = 'portrait'
+            else:  # 270
+                self.camera.orientation = 'landscape'
 
-                # Cameraウィジェットのrotationも設定
-                self.camera.rotation = self.camera_rotation
+            # Cameraウィジェットのrotationも設定
+            self.camera.rotation = self.camera_rotation
 
-                print(f"Applied camera rotation: {self.camera_rotation}°")
-            except Exception as e:
-                print(f"Camera rotation error: {e}")
+            # 回転変更を強制的に適用するためにカメラを再起動
+            if self.camera.play:
+                self.camera.play = False
+                Clock.schedule_once(lambda dt: setattr(self.camera, 'play', True), 0.1)
+
+            print(f"Applied camera rotation: {self.camera_rotation}°")
+        except Exception as e:
+            print(f"Camera rotation error: {e}")
 
     def show_camera_error(self):
         # カメラエラーのメッセージを表示
@@ -347,8 +351,14 @@ class CameraApp(App):
         self.rotation_btn.text = f'🔄 {self.camera_rotation}°'
 
         # 回転を即座に適用
-        if platform == 'android':
-            self.apply_camera_rotation()
+    def rotate_camera(self, instance):
+        """カメラの向きを90度回転させる"""
+        # 回転角度を90度ずつ変更（0° → 90° → 180° → 270° → 0°）
+        self.camera_rotation = (self.camera_rotation + 90) % 360
+        self.rotation_btn.text = f'🔄 {self.camera_rotation}°'
+
+        # 少し遅延させて回転を適用（カメラの状態変更が完了するのを待つ）
+        Clock.schedule_once(lambda dt: self.apply_camera_rotation(), 0.1)
 
         print(f"Camera rotation changed to {self.camera_rotation}°")
 
