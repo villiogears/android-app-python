@@ -341,13 +341,17 @@ class CameraApp(App):
 
         # 回転を即座に適用
     def rotate_camera(self, instance):
-        """カメラの向きを90度回転させる"""
+        """camera4kivyを使用したカメラ回転"""
         # 回転角度を90度ずつ変更（0° → 90° → 180° → 270° → 0°）
         self.camera_rotation = (self.camera_rotation + 90) % 360
         self.rotation_btn.text = f'🔄 {self.camera_rotation}°'
 
-        # 少し遅延させて回転を適用（カメラの状態変更が完了するのを待つ）
-        Clock.schedule_once(lambda dt: self.apply_camera_rotation(), 0.1)
+        # camera4kivyの場合、よりスムーズな回転適用
+        if self.camera4kivy_available:
+            self.apply_camera_rotation()
+        else:
+            # 少し遅延させて回転を適用（カメラの状態変更が完了するのを待つ）
+            Clock.schedule_once(lambda dt: self.apply_camera_rotation(), 0.1)
 
         print(f"Camera rotation changed to {self.camera_rotation}°")
 
