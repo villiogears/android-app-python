@@ -30,11 +30,11 @@ except ImportError:
 class CameraApp(App):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Androidではデフォルトで表示回転を0度に設定（カメラの実際の向きは変更しない）
+        # Androidではデフォルトで表示回転を90度に設定（右向き）
         if platform == 'android':
-            self.camera_rotation = 0  # 表示回転の初期値
+            self.camera_rotation = 90  # 表示回転の初期値（右向き）
         else:
-            self.camera_rotation = 0  # カメラの回転角度を追跡
+            self.camera_rotation = 90  # カメラの回転角度を追跡（右向き）
 
         # camera4kivyの利用可能状態をチェック
         self.camera4kivy_available = CAMERA4KIVY_AVAILABLE
