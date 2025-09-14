@@ -2,26 +2,36 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.image import Image
-from jnius import autoclass, cast
-from android import activity
+from kivy.utils import platform
+try:
+    if platform == 'android':
+        from jnius import autoclass, cast
+        from android import activity
+    else:
+        autoclass = cast = activity = None
+except ImportError:
+    autoclass = cast = activity = None
 from functools import partial
 from datetime import datetime
 from os.path import exists
+
 
 class ImageCaptureApp(App):
 
     RESULT_CODE = 0x5963
 
-    Intent = autoclass('android.content.Intent')
-    PythonActivity = autoclass('org.renpy.android.PythonActivity')
-    MediaStore = autoclass('android.provider.MediaStore')
-    Uri = autoclass('android.net.Uri')
-    parcel = partial(cast, 'android.os.Parcelable')
+    if autoclass:
+        Intent = autoclass('android.content.Intent')
+        PythonActivity = autoclass('org.renpy.android.PythonActivity')
+        MediaStore = autoclass('android.provider.MediaStore')
+        Uri = autoclass('android.net.Uri')
+        parcel = partial(cast, 'android.os.Parcelable')
 
     def build(self):
         self.root = StackLayout()
-        self.root.bind(on_touch_up=self.do_capture)
-        activity.bind(on_activity_result=self.on_activity_result)
+        if platform == 'android' and activity:
+            self.root.bind(on_touch_up=self.do_capture)
+            activity.bind(on_activity_result=self.on_activity_result)
         return self.root
 
     def get_filename(self):
@@ -33,6 +43,8 @@ class ImageCaptureApp(App):
                 return fn
 
     def do_capture(self, instance, value):
+        if platform != 'android' or not autoclass:
+            return
         self.filename = self.get_filename()
         uri = self.parcel(self.Uri.parse('file://' + self.filename))
         intent = self.Intent(self.MediaStore.ACTION_IMAGE_CAPTURE)
