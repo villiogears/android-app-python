@@ -29,9 +29,9 @@ except ImportError:
 class CameraApp(App):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Androidではデフォルトで90度回転
+        # Androidではデフォルトで表示回転を0度に設定（カメラの実際の向きは変更しない）
         if platform == 'android':
-            self.camera_rotation = 90
+            self.camera_rotation = 0  # 表示回転の初期値
         else:
             self.camera_rotation = 0  # カメラの回転角度を追跡
 
@@ -225,42 +225,32 @@ class CameraApp(App):
         try:
             self.camera.play = True
             if self.camera4kivy_available:
-                # camera4kivyの場合、回転を適用
+                # camera4kivyの場合、カメラの実際の向きは変更せず、初期表示回転を適用
                 self.apply_camera_rotation()
                 print("Camera started successfully with camera4kivy")
             else:
-                # Androidでのカメラ向き修正 - rotationプロパティを使用
-                if platform == 'android':
-                    self.apply_camera_rotation()
+                # 標準Kivy Cameraの場合も、表示回転のみ適用
+                self.apply_camera_rotation()
                 print("Camera started successfully (standard)")
         except Exception as e:
             print(f"Failed to start camera: {e}")
             self.show_camera_error()
     
     def apply_camera_rotation(self):
-        """カメラの回転を適用する - camera4kivyを使用"""
+        """カメラの表示回転のみを適用する - カメラの実際の向きは変更しない"""
         try:
             if self.camera4kivy_available:
-                # camera4kivyの回転機能を使用
-                if hasattr(self.camera, 'rotation'):
-                    self.camera.rotation = self.camera_rotation
-                print(f"Applied camera rotation: {self.camera_rotation}° (camera4kivy)")
+                # camera4kivyの場合、カメラの実際の向きは変更せず、表示のみ回転
+                # XCameraのrotationプロパティはカメラの実際の向きを変える可能性があるので、
+                # 代わりにカメラウィジェット自体の回転を使用
+                self.camera.rotation = self.camera_rotation
+                print(f"Applied display rotation: {self.camera_rotation}° (camera4kivy)")
             else:
-                # 標準Kivy Cameraの場合
-                if self.camera_rotation == 0:
-                    self.camera.orientation = 'portrait'
-                elif self.camera_rotation == 90:
-                    self.camera.orientation = 'landscape'
-                elif self.camera_rotation == 180:
-                    self.camera.orientation = 'portrait'
-                else:  # 270
-                    self.camera.orientation = 'landscape'
-
-                if hasattr(self.camera, 'rotation'):
-                    self.camera.rotation = self.camera_rotation
-                print(f"Applied camera rotation: {self.camera_rotation}° (standard)")
+                # 標準Kivy Cameraの場合も、表示回転のみ適用
+                self.camera.rotation = self.camera_rotation
+                print(f"Applied display rotation: {self.camera_rotation}° (standard)")
         except Exception as e:
-            print(f"Camera rotation error: {e}")
+            print(f"Display rotation error: {e}")
 
     def show_camera_error(self):
         # カメラエラーのメッセージを表示
@@ -334,26 +324,15 @@ class CameraApp(App):
                 print(f"Capture fallback error: {e}")
     
     def rotate_camera(self, instance):
-        """カメラの向きを90度回転させる"""
+        """カメラの表示のみを回転させる - カメラの実際の向きは変更しない"""
         # 回転角度を90度ずつ変更（0° → 90° → 180° → 270° → 0°）
         self.camera_rotation = (self.camera_rotation + 90) % 360
         self.rotation_btn.text = f'🔄 {self.camera_rotation}°'
 
-        # 回転を即座に適用
-    def rotate_camera(self, instance):
-        """camera4kivyを使用したカメラ回転"""
-        # 回転角度を90度ずつ変更（0° → 90° → 180° → 270° → 0°）
-        self.camera_rotation = (self.camera_rotation + 90) % 360
-        self.rotation_btn.text = f'🔄 {self.camera_rotation}°'
+        # 表示回転のみを即座に適用（カメラの実際の向きは変更しない）
+        self.apply_camera_rotation()
 
-        # camera4kivyの場合、よりスムーズな回転適用
-        if self.camera4kivy_available:
-            self.apply_camera_rotation()
-        else:
-            # 少し遅延させて回転を適用（カメラの状態変更が完了するのを待つ）
-            Clock.schedule_once(lambda dt: self.apply_camera_rotation(), 0.1)
-
-        print(f"Camera rotation changed to {self.camera_rotation}°")
+        print(f"Display rotation changed to {self.camera_rotation}° (preview only)")
 
     def zoom_in(self, instance):
         """camera4kivyのズーム機能を使用"""
