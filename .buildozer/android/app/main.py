@@ -30,11 +30,11 @@ except ImportError:
 class CameraApp(App):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Androidではデフォルトで表示回転を90度に設定（右向き）
+        # Androidではカメラセンサーの回転補正を行う
         if platform == 'android':
-            self.camera_rotation = 90  # 表示回転の初期値（右向き）
+            self.camera_rotation = 0  # Androidでは0°から開始して自動補正
         else:
-            self.camera_rotation = 90  # カメラの回転角度を追跡（右向き）
+            self.camera_rotation = 90  # PCでは右向きから開始
 
         # camera4kivyの利用可能状態をチェック
         self.camera4kivy_available = CAMERA4KIVY_AVAILABLE
@@ -54,7 +54,8 @@ class CameraApp(App):
             self.camera = XCamera(
                 play=False,
                 size_hint=(1, 1),
-                pos_hint={'x': 0, 'y': 0}
+                pos_hint={'x': 0, 'y': 0},
+                orientation='same'  # デバイスの向きに合わせる
             )
             # camera4kivyの設定
             if platform == 'android':
@@ -110,7 +111,8 @@ class CameraApp(App):
         middle_buttons = BoxLayout(size_hint_y=0.5)
 
         # Rotation button
-        self.rotation_btn = Button(text=f'🔄 {self.camera_rotation}°', size_hint_x=0.5)
+        rotation_text = f'🔄 {self.camera_rotation}°'
+        self.rotation_btn = Button(text=rotation_text, size_hint_x=0.5)
         self.rotation_btn.bind(on_press=self.rotate_camera)
         middle_buttons.add_widget(self.rotation_btn)
 
@@ -200,8 +202,11 @@ class CameraApp(App):
         try:
             self.camera.play = True
             if self.camera4kivy_available:
-                # camera4kivyの場合、カメラの実際の向きは変更せず、初期表示回転を適用
-                self.apply_camera_rotation()
+                # camera4kivyの場合、Androidのカメラ回転補正を行う
+                if platform == 'android':
+                    self.setup_android_camera_orientation()
+                else:
+                    self.apply_camera_rotation()
                 print("Camera started successfully with camera4kivy")
             else:
                 # 標準Kivy Cameraの場合も、表示回転のみ適用
@@ -211,44 +216,52 @@ class CameraApp(App):
             print(f"Failed to start camera: {e}")
             self.show_camera_error()
 
-    def apply_camera_rotation(self):
-        """カメラの表示回転のみを適用する - camera4kivyを使用"""
+    def setup_android_camera_orientation(self):
+        """Androidカメラの自動回転補正を設定"""
         try:
-            if self.camera4kivy_available:
-                # camera4kivyの場合、カメラの実際の向きは変更せず、表示のみ回転
-                # XCameraのrotationプロパティはカメラの実際の向きを変える可能性があるので、
-                # 代わりにカメラウィジェット自体の回転を使用
-                self.camera.rotation = self.camera_rotation
-                print(f"Applied display rotation: {self.camera_rotation}° (camera4kivy)")
+            if platform == 'android' and self.camera4kivy_available:
+                # camera4kivyのカメラにorientationを設定
+                # Androidでは通常、背面カメラは270°のorientationが必要（デバイスによる）
+                if hasattr(self.camera, 'orientation'):
+                    # 背面カメラの場合（通常は270°）
+                    self.camera.orientation = 270
+                    print(f"Set camera orientation to 270° for Android")
+                else:
+                    # orientationが利用できない場合は手動回転を適用
+                    self.camera.rotation = 0
+                    print("Camera orientation not available, using manual rotation")
+
+                # 少し待ってから回転を適用
+                Clock.schedule_once(lambda dt: self.apply_camera_rotation(), 0.5)
             else:
-                # 標準Kivy Cameraの場合、より確実な回転方法を使用
-                self.apply_standard_camera_rotation()
-                print(f"Applied display rotation: {self.camera_rotation}° (standard)")
+                self.apply_camera_rotation()
         except Exception as e:
-            print(f"Display rotation error: {e}")
+            print(f"Android camera orientation setup error: {e}")
+            self.apply_camera_rotation()
 
-    def apply_standard_camera_rotation(self):
-        """標準Kivy Cameraでの確実な回転処理"""
+    def apply_android_rotation(self):
+        """Android特有のカメラ回転処理"""
         try:
-            # カメラウィジェット自体の回転を設定
-            self.camera.rotation = self.camera_rotation
-
-            # より確実にするために、カメラのサイズも調整
-            if self.camera_rotation in [90, 270]:
-                # 90度または270度の場合は幅と高さを入れ替える
-                original_size = self.camera.size
-                self.camera.size = (original_size[1], original_size[0])
-                # 位置も調整
+            if self.camera4kivy_available and hasattr(self.camera, 'orientation'):
+                # orientationを更新（背面カメラは通常270°）
+                base_orientation = 270
+                # ユーザーの回転要求に応じてorientationを調整
                 if self.camera_rotation == 90:
-                    self.camera.pos = (self.camera.pos[0] + (original_size[0] - original_size[1])/2,
-                                     self.camera.pos[1] - (original_size[0] - original_size[1])/2)
+                    self.camera.orientation = base_orientation  # 通常の向き
+                elif self.camera_rotation == 180:
+                    self.camera.orientation = base_orientation + 90  # 180°回転
                 elif self.camera_rotation == 270:
-                    self.camera.pos = (self.camera.pos[0] - (original_size[0] - original_size[1])/2,
-                                     self.camera.pos[1] + (original_size[0] - original_size[1])/2)
+                    self.camera.orientation = base_orientation + 180  # 270°回転
+                elif self.camera_rotation == 0:
+                    self.camera.orientation = base_orientation + 270  # 360°/0°回転
 
-            print(f"Standard camera rotation applied: {self.camera_rotation}°")
+                print(f"Android camera orientation set to {self.camera.orientation}° (base: {base_orientation}° + user: {self.camera_rotation}°)")
+            else:
+                # orientationが利用できない場合は通常の回転を適用
+                self.apply_camera_rotation()
         except Exception as e:
-            print(f"Standard camera rotation error: {e}")
+            print(f"Android rotation error: {e}")
+            self.apply_camera_rotation()
 
     def show_camera_error(self):
         # カメラエラーのメッセージを表示
@@ -322,13 +335,17 @@ class CameraApp(App):
                 print(f"Capture fallback error: {e}")
 
     def rotate_camera(self, instance):
-        """カメラの表示のみを回転させる - カメラの実際の向きは変更しない"""
-        # 回転角度を90度ずつ変更（0° → 90° → 180° → 270° → 0°）
+        """カメラの表示のみを回転させる - Androidではorientationを考慮"""
+        # 回転角度を90度ずつ変更
         self.camera_rotation = (self.camera_rotation + 90) % 360
         self.rotation_btn.text = f'🔄 {self.camera_rotation}°'
 
-        # 表示回転のみを即座に適用（カメラの実際の向きは変更しない）
-        self.apply_camera_rotation()
+        # Androidの場合、orientationによる自動補正を考慮して回転を適用
+        if platform == 'android' and self.camera4kivy_available:
+            self.apply_android_rotation()
+        else:
+            # 表示回転のみを即座に適用（カメラの実際の向きは変更しない）
+            self.apply_camera_rotation()
 
         print(f"Display rotation changed to {self.camera_rotation}° (preview only)")
 
