@@ -164,7 +164,7 @@ class CameraApp(App):
     def start_camera_safe(self, dt):
         try:
             self.camera.play = True
-            # Androidでのカメラ向き修正 - canvasを使って回転
+            # Androidでのカメラ向き修正 - rotationプロパティを使用
             if platform == 'android':
                 self.apply_camera_rotation()
             print("Camera started successfully")
@@ -175,15 +175,9 @@ class CameraApp(App):
     def apply_camera_rotation(self):
         """カメラの回転を適用する"""
         if platform == 'android':
-            def rotate_camera(*args):
-                self.camera.canvas.before.clear()
-                from kivy.graphics import PushMatrix, Rotate, PopMatrix
-                with self.camera.canvas.before:
-                    PushMatrix()
-                    Rotate(angle=self.camera_rotation, origin=self.camera.center)
-                    PopMatrix()
-            # カメラが準備できるまで少し待ってから回転を適用
-            Clock.schedule_once(lambda dt: rotate_camera(), 0.5)
+            # Cameraウィジェットのrotationプロパティを使用
+            self.camera.rotation = self.camera_rotation
+            print(f"Applied camera rotation: {self.camera_rotation}°")
     
     def show_camera_error(self):
         # カメラエラーのメッセージを表示
