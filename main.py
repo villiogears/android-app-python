@@ -25,8 +25,8 @@ class CameraApp(App):
         # Main layout
         layout = BoxLayout(orientation='vertical')
         
-        # Camera widget
-        self.camera = Camera(play=True, resolution=(640, 480))
+        # Camera widget - カメラの初期化を遅らせる
+        self.camera = Camera(play=False, resolution=(640, 480))
         layout.add_widget(self.camera)
         
         # Control buttons
@@ -74,7 +74,33 @@ class CameraApp(App):
         
         button_layout.add_widget(bottom_buttons)
         
+        # カメラの初期化を遅らせる
+        Clock.schedule_once(self.init_camera, 2)
+        
         return layout
+    
+    def init_camera(self, dt):
+        try:
+            # カメラ権限を確認してから初期化
+            if platform == 'android':
+                from android.permissions import request_permissions, Permission
+                def on_permissions(result):
+                    if all(result):
+                        self.start_camera()
+                    else:
+                        print("Camera permission denied")
+                request_permissions([Permission.CAMERA, Permission.WRITE_EXTERNAL_STORAGE], on_permissions)
+            else:
+                self.start_camera()
+        except Exception as e:
+            print(f"Camera initialization error: {e}")
+    
+    def start_camera(self):
+        try:
+            self.camera.play = True
+            print("Camera started successfully")
+        except Exception as e:
+            print(f"Failed to start camera: {e}")
     
     def capture(self, instance):
         # Capture image
