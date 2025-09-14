@@ -20,6 +20,13 @@ import os
 
 
 class CameraApp(App):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Androidではデフォルトで90度回転
+        if platform == 'android':
+            self.camera_rotation = 90
+        else:
+            self.camera_rotation = 0  # カメラの回転角度を追跡
     def build(self):
         # Main layout - カメラを最大化するためにFloatLayoutを使用
         from kivy.uix.floatlayout import FloatLayout
@@ -72,6 +79,20 @@ class CameraApp(App):
         
         button_layout.add_widget(top_buttons)
         
+        # Middle row buttons - 回転コントロールを追加
+        middle_buttons = BoxLayout(size_hint_y=0.5)
+        
+        # Rotation button
+        self.rotation_btn = Button(text=f'🔄 {self.camera_rotation}°', size_hint_x=0.5)
+        self.rotation_btn.bind(on_press=self.rotate_camera)
+        middle_buttons.add_widget(self.rotation_btn)
+        
+        # Placeholder button for balance
+        placeholder_btn = Button(text='', size_hint_x=0.5, background_color=(0, 0, 0, 0))
+        middle_buttons.add_widget(placeholder_btn)
+        
+        button_layout.add_widget(middle_buttons)
+        
         # Bottom row buttons
         bottom_buttons = BoxLayout(size_hint_y=0.5)
         
@@ -89,11 +110,11 @@ class CameraApp(App):
         
         layout.add_widget(button_layout)
         
-        # ズームコントロールを画面右側に配置
+        # ズームコントロールを画面右側に配置（位置を調整）
         zoom_layout = BoxLayout(
             orientation='vertical',
-            size_hint=(0.08, 0.25),
-            pos_hint={'x': 0.92, 'y': 0.35}
+            size_hint=(0.08, 0.2),
+            pos_hint={'x': 0.92, 'y': 0.25}
         )
         
         zoom_in_btn = Button(text='🔍+', size_hint_y=0.5, background_color=(0, 0, 0, 0.5), font_size=20)
@@ -143,21 +164,26 @@ class CameraApp(App):
     def start_camera_safe(self, dt):
         try:
             self.camera.play = True
-            # Androidでのカメラ向き修正 - canvasを使って90度回転
+            # Androidでのカメラ向き修正 - canvasを使って回転
             if platform == 'android':
-                def rotate_camera(*args):
-                    self.camera.canvas.before.clear()
-                    from kivy.graphics import PushMatrix, Rotate, PopMatrix
-                    with self.camera.canvas.before:
-                        PushMatrix()
-                        Rotate(angle=90, origin=self.camera.center)
-                        PopMatrix()
-                # カメラが準備できるまで少し待ってから回転を適用
-                Clock.schedule_once(lambda dt: rotate_camera(), 0.5)
+                self.apply_camera_rotation()
             print("Camera started successfully")
         except Exception as e:
             print(f"Failed to start camera: {e}")
             self.show_camera_error()
+    
+    def apply_camera_rotation(self):
+        """カメラの回転を適用する"""
+        if platform == 'android':
+            def rotate_camera(*args):
+                self.camera.canvas.before.clear()
+                from kivy.graphics import PushMatrix, Rotate, PopMatrix
+                with self.camera.canvas.before:
+                    PushMatrix()
+                    Rotate(angle=self.camera_rotation, origin=self.camera.center)
+                    PopMatrix()
+            # カメラが準備できるまで少し待ってから回転を適用
+            Clock.schedule_once(lambda dt: rotate_camera(), 0.5)
     
     def show_camera_error(self):
         # カメラエラーのメッセージを表示
@@ -208,18 +234,17 @@ class CameraApp(App):
             self.camera.export_to_png(filepath)
             print(f'Image saved to: {filepath}')
     
-    def toggle_flash(self, instance):
-        # Toggle flash (Android only)
-        if platform == 'android':
-            try:
-                # Android flash control using jnius
-                CameraClass = autoclass('android.hardware.Camera')
-                Parameters = autoclass('android.hardware.Camera$Parameters')
-                
-                # This is a simplified example - actual implementation may vary
-                print('Flash toggle attempted')
-            except:
-                print('Flash control not available')
+    def rotate_camera(self, instance):
+        """カメラの向きを90度回転させる"""
+        # 回転角度を90度ずつ変更（0° → 90° → 180° → 270° → 0°）
+        self.camera_rotation = (self.camera_rotation + 90) % 360
+        self.rotation_btn.text = f'🔄 {self.camera_rotation}°'
+        
+        # 回転を即座に適用
+        if platform == 'android' and self.camera.play:
+            self.apply_camera_rotation()
+        
+        print(f"Camera rotation changed to {self.camera_rotation}°")
     
     def zoom_in(self, instance):
         if hasattr(self.camera, 'zoom'):
