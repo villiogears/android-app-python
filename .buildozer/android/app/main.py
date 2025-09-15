@@ -57,6 +57,11 @@ Builder.load_string("""
         size_hint_y: None
         height: '48dp'
         on_press: root.capture()
+    Button:
+        text: 'Download'
+        size_hint_y: None
+        height: '48dp'
+        on_press: root.download()
     
 """)
 
@@ -112,6 +117,47 @@ class CameraClick(BoxLayout):
         filename = os.path.join(save_dir, "IMG_{}.png".format(timestr))
         camera.export_to_png(filename)
         print(f"Captured -> {filename}")
+
+    def download(self):
+        """
+        Copy the most recently saved image from the save_path to the user's Downloads folder.
+        On desktop use ~/Downloads, on Android try /sdcard/Download as a best-effort.
+        """
+        import os, shutil
+        app = App.get_running_app()
+        save_dir = self.ids.get('save_path').text if 'save_path' in self.ids else app.user_data_dir
+        if not os.path.isdir(save_dir):
+            self._show_message(f"Save directory not found: {save_dir}")
+            return
+
+        # find latest PNG in save_dir
+        pngs = [os.path.join(save_dir, f) for f in os.listdir(save_dir) if f.lower().endswith('.png')]
+        if not pngs:
+            self._show_message('No PNG images found in save directory')
+            return
+        latest = max(pngs, key=os.path.getmtime)
+
+        # determine downloads folder
+        if os.name == 'nt':
+            downloads = os.path.join(os.path.expanduser('~'), 'Downloads')
+        else:
+            # POSIX (Linux / Android)
+            downloads = os.path.join(os.path.expanduser('~'), 'Downloads')
+            # on Android, try common external path
+            if not os.path.isdir(downloads):
+                downloads = '/sdcard/Download'
+
+        try:
+            os.makedirs(downloads, exist_ok=True)
+            dest = os.path.join(downloads, os.path.basename(latest))
+            shutil.copy2(latest, dest)
+            self._show_message(f'Copied to: {dest}')
+        except Exception as e:
+            self._show_message(f'Failed to copy: {e}')
+
+    def _show_message(self, text):
+        p = Popup(title='Info', content=Label(text=text), size_hint=(0.8, 0.3))
+        p.open()
 
 
 class TestCamera(App):
