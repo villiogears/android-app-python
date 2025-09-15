@@ -200,6 +200,12 @@ class CameraApp(App):
 
     def start_camera_safe(self, dt):
         try:
+            if not self.camera4kivy_available and platform == 'android':
+                # Androidでcamera4kivyが利用できない場合、エラーを表示
+                print("Camera4Kivy is required for Android but not available")
+                self.show_camera_error()
+                return
+
             self.camera.play = True
             if self.camera4kivy_available:
                 # camera4kivyの場合、Androidのカメラ回転補正を行う
@@ -274,7 +280,7 @@ class CameraApp(App):
     def show_camera_error(self):
         # カメラエラーのメッセージを表示
         error_label = Label(
-            text="カメラが利用できません\n権限を確認してください",
+            text="カメラが利用できません\nCamera4Kivyが必要です",
             font_size=20,
             halign='center',
             valign='middle'
@@ -291,8 +297,13 @@ class CameraApp(App):
         error_layout.add_widget(retry_btn)
 
         # メインカメラを非表示にしてエラーメッセージを表示
-        self.camera.opacity = 0
-        self.root.add_widget(error_layout)
+        if hasattr(self, 'camera'):
+            self.camera.opacity = 0
+
+        if hasattr(self, 'root') and self.root:
+            self.root.add_widget(error_layout)
+        else:
+            print("Root widget not available, cannot show error message")
 
     def retry_camera(self, instance):
         # カメラを再試行
@@ -326,21 +337,20 @@ class CameraApp(App):
             except Exception as e:
                 print(f"Capture error: {e}")
         else:
-            # camera4kivyが利用できない場合のフォールバック
-            try:
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                filename = f'photo_{timestamp}.png'
-
-                if platform == 'android':
-                    filepath = f'/storage/emulated/0/DCIM/Camera/{filename}'
-                else:
+            # camera4kivyが利用できない場合
+            if platform == 'android':
+                print("Camera4Kivy is required for capture on Android")
+                self.show_camera_error()
+            else:
+                try:
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    filename = f'photo_{timestamp}.png'
                     filepath = filename
-
-                os.makedirs(os.path.dirname(filepath), exist_ok=True)
-                self.camera.export_to_png(filepath)
-                print(f'Image saved to: {filepath} (standard)')
-            except Exception as e:
-                print(f"Capture fallback error: {e}")
+                    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+                    self.camera.export_to_png(filepath)
+                    print(f'Image saved to: {filepath} (standard)')
+                except Exception as e:
+                    print(f"Capture fallback error: {e}")
 
     def rotate_camera(self, instance):
         """カメラの表示のみを回転させる - Androidではorientationを考慮"""
