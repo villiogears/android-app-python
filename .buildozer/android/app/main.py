@@ -9,7 +9,6 @@ Builder.load_string("""
         id: camera
         resolution: (1440, 900)
         play: False
-        size_hint: (1, 0.8)
         canvas.before:
             PushMatrix
             Rotate:
