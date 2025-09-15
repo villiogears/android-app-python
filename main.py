@@ -7,7 +7,7 @@ Builder.load_string("""
     orientation: 'vertical'
     Camera:
         id: camera
-        resolution: (640, 480)
+        resolution: (1440, 900)
         play: False
         canvas.before:
             PushMatrix
