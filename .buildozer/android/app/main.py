@@ -7,8 +7,8 @@ Builder.load_string("""
     orientation: 'vertical'
     Camera:
         id: camera
-        resolution: (1440, 900)
-        size_hint: (1, 0.8)
+        resolution: (640, 480)
+        size_hint: (1, 0.5)
         # Let the camera texture fill the widget area and not revert to its native size
         allow_stretch: True
         keep_ratio: True
