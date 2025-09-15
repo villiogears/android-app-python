@@ -11,7 +11,7 @@ Builder.load_string("""
         size_hint: (1, 0.8)
         # Let the camera texture fill the widget area and not revert to its native size
         allow_stretch: True
-        keep_ratio: False
+        keep_ratio: True
         play: False
         canvas.before:
             PushMatrix
