@@ -9,6 +9,7 @@ Builder.load_string("""
         id: camera
         resolution: (640, 480)
         size_hint: (1, 0.8)
+        size: (self.parent.width, self.parent.height * 0.8)
         play: False
         canvas.before:
             PushMatrix
